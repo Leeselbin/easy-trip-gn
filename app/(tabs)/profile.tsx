@@ -1,29 +1,32 @@
-import { Pressable, StyleSheet } from 'react-native';
+import { Image, Pressable, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
-import { useKakaoAuth } from '@/hooks/useKakaoAuth';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function ProfileScreen() {
-  const { user, isLoading, canSignIn, signIn, signOut } = useKakaoAuth();
+  const { user, signOut } = useAuth();
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>마이페이지</Text>
 
-      {isLoading ? (
-        <Text>불러오는 중...</Text>
-      ) : user ? (
-        <>
-          <Text style={styles.nickname}>{user.nickname ?? '카카오 사용자'}님 환영합니다</Text>
-          <Pressable style={styles.button} onPress={signOut}>
-            <Text style={styles.buttonText}>로그아웃</Text>
-          </Pressable>
-        </>
-      ) : (
-        <Pressable style={styles.button} disabled={!canSignIn} onPress={signIn}>
-          <Text style={styles.buttonText}>카카오로 로그인</Text>
-        </Pressable>
-      )}
+      <View style={styles.card}>
+        {user.profileImageUrl ? (
+          <Image source={{ uri: user.profileImageUrl }} style={styles.avatar} />
+        ) : (
+          <View style={[styles.avatar, styles.avatarPlaceholder]} />
+        )}
+        <Text style={styles.nickname}>{user.nickname ?? '카카오 사용자'}</Text>
+        <Text style={styles.userId}>카카오 회원번호 {user.id}</Text>
+      </View>
+
+      <Pressable style={styles.button} onPress={signOut}>
+        <Text style={styles.buttonText}>로그아웃</Text>
+      </Pressable>
     </View>
   );
 }
@@ -39,8 +42,25 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
   },
+  card: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+  },
+  avatarPlaceholder: {
+    backgroundColor: 'rgba(127,127,127,0.2)',
+  },
   nickname: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  userId: {
+    fontSize: 13,
+    opacity: 0.6,
   },
   button: {
     backgroundColor: '#FEE500',

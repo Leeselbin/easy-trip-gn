@@ -14,6 +14,10 @@ const ACCESS_TOKEN_KEY = 'kakao_access_token';
 const BRIDGE_REDIRECT_URI = process.env.EXPO_PUBLIC_KAKAO_BRIDGE_REDIRECT_URI ?? '';
 const APP_RETURN_URL = AuthSession.makeRedirectUri({ scheme: 'easytripgn', path: 'redirect' });
 
+// Optional consent items in Kakao Developers must be requested explicitly
+// via `scope`, otherwise Kakao won't ask the user for them at all.
+const KAKAO_SCOPES = ['profile_nickname', 'profile_image'];
+
 export function useKakaoAuth() {
   const [user, setUser] = useState<KakaoUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +46,8 @@ export function useKakaoAuth() {
     const authUrl =
       `${KAKAO_DISCOVERY.authorizationEndpoint}?response_type=code` +
       `&client_id=${encodeURIComponent(KAKAO_REST_API_KEY)}` +
-      `&redirect_uri=${encodeURIComponent(BRIDGE_REDIRECT_URI)}`;
+      `&redirect_uri=${encodeURIComponent(BRIDGE_REDIRECT_URI)}` +
+      `&scope=${encodeURIComponent(KAKAO_SCOPES.join(','))}`;
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, APP_RETURN_URL);
     if (result.type !== 'success' || !result.url) return;
