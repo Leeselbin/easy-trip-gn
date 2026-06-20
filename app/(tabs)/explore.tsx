@@ -2,10 +2,10 @@ import { StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
 
-export default function HomeScreen() {
+export default function ExploreScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>홈</Text>
+      <Text style={styles.title}>탐색</Text>
     </View>
   );
 }

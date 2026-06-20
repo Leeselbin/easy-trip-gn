@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <title>로그인 처리 중...</title>
+  </head>
+  <body>
+    <p>로그인 처리 중입니다. 잠시만 기다려주세요...</p>
+    <script>
+      // Kakao only allows http(s) redirect URIs, so it sends the auth code
+      // here, and this page immediately forwards it into the app via the
+      // app's custom URL scheme.
+      var search = window.location.search;
+      window.location.replace('easytripgn://redirect' + search);
+    </script>
+  </body>
+</html>
