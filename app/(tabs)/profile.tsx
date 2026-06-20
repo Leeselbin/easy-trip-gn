@@ -1,10 +1,10 @@
 import { Image, Pressable, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/store/authStore';
 
 export default function ProfileScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut } = useAuthStore();
 
   if (!user) {
     return null;

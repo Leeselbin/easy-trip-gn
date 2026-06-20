@@ -14,6 +14,7 @@
 - Expo SDK 56 / Expo Router (file-based routing)
 - React Native 0.85, React 19
 - `react-native-maps`, `expo-location`, `expo-auth-session`, `expo-secure-store`
+- `zustand` — 전역 상태 관리 (현재는 로그인 상태 하나, `store/authStore.ts`)
 
 ## 시작하기
 
@@ -71,9 +72,14 @@ app/                  expo-router 화면 (파일 = 라우트)
   (tabs)/              홈 / 탐색(지도) / 마이페이지 탭
   login.tsx            로그인 화면
 components/            공용 UI 컴포넌트
-contexts/AuthContext.tsx  카카오 로그인 상태를 앱 전역에서 공유
-hooks/useKakaoAuth.ts  카카오 로그인/로그아웃, 토큰 저장/복원
+store/authStore.ts     Zustand 전역 스토어 — 카카오 로그인 상태(user, isLoading)와 로그인/로그아웃 액션
 lib/                   카카오 OAuth, 위치 권한 등 순수 로직
 constants/busStops.ts  버스정류장 더미 데이터
 docs/redirect.html     카카오 로그인용 Redirect URI 브릿지 페이지 (GitHub Pages)
 ```
+
+## 전역 상태 관리
+
+전역으로 공유해야 하는 값은 `store/` 아래에 Zustand 스토어로 둡니다 (Provider로 감쌀 필요 없이 `useXxxStore()` 훅만 호출). 화면 안에서만 쓰는 상태(지도 카메라 위치, 선택된 마커 등)는 그냥 해당 컴포넌트의 `useState`로 두고, 여러 화면/탭에서 같이 봐야 하는 값만 스토어로 올립니다.
+
+- `store/authStore.ts` — 로그인 여부(`user`), 초기 로딩 상태(`isLoading`), `signIn`/`signOut`. 앱 시작 시 SecureStore에 저장된 토큰으로 자동 로그인을 시도합니다.

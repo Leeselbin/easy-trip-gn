@@ -1,10 +1,10 @@
 import { Pressable, StyleSheet } from 'react-native';
 
 import { Text, View } from '@/components/Themed';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
-  const { canSignIn, signIn } = useAuth();
+  const { canSignIn, signIn } = useAuthStore();
 
   return (
     <View style={styles.container}>

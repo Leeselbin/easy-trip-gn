@@ -2,9 +2,9 @@ import * as AuthSession from 'expo-auth-session';
 import * as Linking from 'expo-linking';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
-import { useCallback, useEffect, useState } from 'react';
+import { create } from 'zustand';
 
-import { KAKAO_DISCOVERY, KAKAO_REST_API_KEY, KakaoUser, fetchKakaoUser } from '@/lib/kakaoAuth';
+import { KAKAO_DISCOVERY, KAKAO_REST_API_KEY, type KakaoUser, fetchKakaoUser } from '@/lib/kakaoAuth';
 
 const ACCESS_TOKEN_KEY = 'kakao_access_token';
 
@@ -18,31 +18,20 @@ const APP_RETURN_URL = AuthSession.makeRedirectUri({ scheme: 'easytripgn', path:
 // via `scope`, otherwise Kakao won't ask the user for them at all.
 const KAKAO_SCOPES = ['profile_nickname', 'profile_image'];
 
-export function useKakaoAuth() {
-  const [user, setUser] = useState<KakaoUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+type AuthState = {
+  user: KakaoUser | null;
+  isLoading: boolean;
+  canSignIn: boolean;
+  signIn: () => Promise<void>;
+  signOut: () => Promise<void>;
+};
 
-  const signInWithToken = useCallback(async (accessToken: string) => {
-    const kakaoUser = await fetchKakaoUser(accessToken);
-    await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
-    setUser(kakaoUser);
-  }, []);
+export const useAuthStore = create<AuthState>((set) => ({
+  user: null,
+  isLoading: true,
+  canSignIn: !!KAKAO_REST_API_KEY && !!BRIDGE_REDIRECT_URI,
 
-  useEffect(() => {
-    (async () => {
-      const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
-      if (storedToken) {
-        try {
-          await signInWithToken(storedToken);
-        } catch {
-          await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-        }
-      }
-      setIsLoading(false);
-    })();
-  }, [signInWithToken]);
-
-  const signIn = useCallback(async () => {
+  signIn: async () => {
     const authUrl =
       `${KAKAO_DISCOVERY.authorizationEndpoint}?response_type=code` +
       `&client_id=${encodeURIComponent(KAKAO_REST_API_KEY)}` +
@@ -57,27 +46,34 @@ export function useKakaoAuth() {
     if (!code) return;
 
     const tokenResponse = await AuthSession.exchangeCodeAsync(
-      {
-        clientId: KAKAO_REST_API_KEY,
-        code,
-        redirectUri: BRIDGE_REDIRECT_URI,
-      },
+      { clientId: KAKAO_REST_API_KEY, code, redirectUri: BRIDGE_REDIRECT_URI },
       KAKAO_DISCOVERY
     );
 
-    await signInWithToken(tokenResponse.accessToken);
-  }, [signInWithToken]);
+    await signInWithToken(tokenResponse.accessToken, set);
+  },
 
-  const signOut = useCallback(async () => {
+  signOut: async () => {
     await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
-    setUser(null);
-  }, []);
+    set({ user: null });
+  },
+}));
 
-  return {
-    user,
-    isLoading,
-    canSignIn: !!KAKAO_REST_API_KEY && !!BRIDGE_REDIRECT_URI,
-    signIn,
-    signOut,
-  };
+async function signInWithToken(accessToken: string, set: (partial: Partial<AuthState>) => void) {
+  const kakaoUser = await fetchKakaoUser(accessToken);
+  await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
+  set({ user: kakaoUser });
 }
+
+// 앱이 처음 로드될 때 한 번, 저장된 토큰으로 자동 로그인을 시도합니다.
+(async () => {
+  const storedToken = await SecureStore.getItemAsync(ACCESS_TOKEN_KEY);
+  if (storedToken) {
+    try {
+      await signInWithToken(storedToken, useAuthStore.setState);
+    } catch {
+      await SecureStore.deleteItemAsync(ACCESS_TOKEN_KEY);
+    }
+  }
+  useAuthStore.setState({ isLoading: false });
+})();

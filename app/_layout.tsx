@@ -5,8 +5,8 @@ import { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/components/useColorScheme";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { ensureLocationPermission } from "@/lib/location";
+import { useAuthStore } from "@/store/authStore";
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -30,16 +30,12 @@ export default function RootLayout() {
     return null;
   }
 
-  return (
-    <AuthProvider>
-      <RootLayoutNav />
-    </AuthProvider>
-  );
+  return <RootLayoutNav />;
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, isLoading } = useAuth();
+  const { user, isLoading } = useAuthStore();
 
   useEffect(() => {
     if (!isLoading) {
