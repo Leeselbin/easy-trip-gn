@@ -24,6 +24,20 @@ model BusArrival {
   busStopId      String
 }
 
+model Restaurant {
+  id        String @id
+  name      String
+  latitude  Float
+  longitude Float
+}
+
+model TouristSpot {
+  id        String @id
+  name      String
+  latitude  Float
+  longitude Float
+}
+
 model User {
   id              Int      @id @default(autoincrement())
   kakaoId         String   @unique

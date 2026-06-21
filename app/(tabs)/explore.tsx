@@ -12,17 +12,27 @@ import BusStopSheet from "@/components/BusStopSheet";
 import { Text, View } from "@/components/Themed";
 import { type BusStop } from "@/constants/busStops";
 import { useBusStops } from "@/hooks/useBusStops";
+import { useRestaurants } from "@/hooks/useRestaurants";
+import { useTouristSpots } from "@/hooks/useTouristSpots";
 import { ensureLocationPermission } from "@/lib/location";
 
 const INITIAL_REGION: Region = {
   latitude: 37.7634,
   longitude: 128.8995,
-  latitudeDelta: 0.08,
-  longitudeDelta: 0.08,
+  latitudeDelta: 0.1,
+  longitudeDelta: 0.1,
 };
 
 // 1보다 작을수록 더 많이 확대됨 살짝씩 줌인/줌아웃
 const ZOOM_STEP = 0.5;
+
+type Category = "busStop" | "restaurant" | "tour";
+
+const CATEGORY_BUTTONS: { key: Category; label: string }[] = [
+  { key: "restaurant", label: "음식점" },
+  { key: "busStop", label: "정류장" },
+  { key: "tour", label: "관광지" },
+];
 
 export default function ExploreScreen() {
   const mapRef = useRef<MapView>(null);
@@ -31,7 +41,10 @@ export default function ExploreScreen() {
     Record<string, React.ComponentRef<typeof Marker> | null>
   >({});
   const [selectedStop, setSelectedStop] = useState<BusStop | null>(null);
+  const [category, setCategory] = useState<Category>("busStop");
   const { data: busStops, isLoading, isError } = useBusStops();
+  const { data: restaurants } = useRestaurants();
+  const { data: touristSpots } = useTouristSpots();
   const routeCoordinates =
     busStops?.map(({ latitude, longitude }) => ({ latitude, longitude })) ?? [];
 
@@ -80,33 +93,76 @@ export default function ExploreScreen() {
           regionRef.current = nextRegion;
         }}
       >
-        {busStops?.map((stop) => (
-          <Marker
-            key={stop.id}
-            ref={(ref) => {
-              markerRefs.current[stop.id] = ref;
-            }}
-            coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
-            title={stop.name}
-            pinColor={
-              stop.arrivals.some((a) => a.isLowFloor) ? "#2f95dc" : "#999999"
-            }
-            onPress={() => setSelectedStop(stop)}
+        {category === "busStop" &&
+          busStops?.map((stop) => (
+            <Marker
+              key={stop.id}
+              ref={(ref) => {
+                markerRefs.current[stop.id] = ref;
+              }}
+              coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
+              title={stop.name}
+              pinColor={
+                stop.arrivals.some((a) => a.isLowFloor) ? "#2f95dc" : "#999999"
+              }
+              onPress={() => setSelectedStop(stop)}
+            />
+          ))}
+        {category === "busStop" && (
+          <Polyline
+            coordinates={routeCoordinates}
+            strokeColor="#2f95dc"
+            strokeWidth={4}
           />
-        ))}
-        <Polyline
-          coordinates={routeCoordinates}
-          strokeColor="#2f95dc"
-          strokeWidth={4}
-        />
+        )}
+        {category === "restaurant" &&
+          restaurants?.map((restaurant) => (
+            <Marker
+              key={restaurant.id}
+              coordinate={{ latitude: restaurant.latitude, longitude: restaurant.longitude }}
+              title={restaurant.name}
+              pinColor="#ff7043"
+            />
+          ))}
+        {category === "tour" &&
+          touristSpots?.map((spot) => (
+            <Marker
+              key={spot.id}
+              coordinate={{ latitude: spot.latitude, longitude: spot.longitude }}
+              title={spot.name}
+              pinColor="#43a047"
+            />
+          ))}
       </MapView>
 
-      {isLoading && (
+      <RNView style={styles.categoryBar}>
+        {CATEGORY_BUTTONS.map((button) => (
+          <Pressable
+            key={button.key}
+            style={[
+              styles.categoryButton,
+              category === button.key && styles.categoryButtonActive,
+            ]}
+            onPress={() => setCategory(button.key)}
+          >
+            <RNText
+              style={[
+                styles.categoryButtonText,
+                category === button.key && styles.categoryButtonTextActive,
+              ]}
+            >
+              {button.label}
+            </RNText>
+          </Pressable>
+        ))}
+      </RNView>
+
+      {category === "busStop" && isLoading && (
         <RNView style={styles.statusBanner}>
           <Text>정류장 정보를 불러오는 중...</Text>
         </RNView>
       )}
-      {isError && (
+      {category === "busStop" && isError && (
         <RNView style={styles.statusBanner}>
           <Text>정류장 정보를 불러오지 못했습니다.</Text>
         </RNView>
@@ -188,6 +244,35 @@ const styles = StyleSheet.create({
   zoomDivider: {
     height: 1,
     backgroundColor: "rgba(0,0,0,0.1)",
+  },
+  categoryBar: {
+    position: "absolute",
+    top: 16,
+    alignSelf: "center",
+    flexDirection: "row",
+    borderRadius: 10,
+    overflow: "hidden",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  categoryButtonActive: {
+    backgroundColor: "#2f95dc",
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#333",
+  },
+  categoryButtonTextActive: {
+    color: "#fff",
   },
   statusBanner: {
     position: "absolute",

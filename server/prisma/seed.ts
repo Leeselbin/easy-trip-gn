@@ -58,6 +58,20 @@ const BUS_STOPS = [
   },
 ];
 
+const RESTAURANTS = [
+  { id: "restaurant-1", name: "강릉커피거리 맛집", latitude: 37.7715, longitude: 128.9415 },
+  { id: "restaurant-2", name: "교동반점", latitude: 37.7589, longitude: 128.8967 },
+  { id: "restaurant-3", name: "초당순두부마을", latitude: 37.7868, longitude: 128.9221 },
+  { id: "restaurant-4", name: "중앙시장 닭강정", latitude: 37.7515, longitude: 128.8987 },
+];
+
+const TOURIST_SPOTS = [
+  { id: "tour-1", name: "경포해변", latitude: 37.8053, longitude: 128.9086 },
+  { id: "tour-2", name: "오죽헌", latitude: 37.7766, longitude: 128.8898 },
+  { id: "tour-3", name: "안목해변 커피거리", latitude: 37.7719, longitude: 128.9426 },
+  { id: "tour-4", name: "정동진역", latitude: 37.6906, longitude: 129.0339 },
+];
+
 async function main() {
   for (const stop of BUS_STOPS) {
     await prisma.busStop.upsert({
@@ -70,6 +84,22 @@ async function main() {
         longitude: stop.longitude,
         arrivals: { create: stop.arrivals },
       },
+    });
+  }
+
+  for (const restaurant of RESTAURANTS) {
+    await prisma.restaurant.upsert({
+      where: { id: restaurant.id },
+      update: {},
+      create: restaurant,
+    });
+  }
+
+  for (const spot of TOURIST_SPOTS) {
+    await prisma.touristSpot.upsert({
+      where: { id: spot.id },
+      update: {},
+      create: spot,
     });
   }
 }

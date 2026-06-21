@@ -21,9 +21,10 @@ export async function fetchKakaoUser(accessToken: string): Promise<KakaoUser> {
   }
 
   const data = await response.json();
+  const profile = data.kakao_account?.profile;
   return {
     id: data.id,
-    nickname: data.kakao_account?.profile?.nickname,
-    profileImageUrl: data.kakao_account?.profile?.profile_image_url,
+    nickname: profile?.nickname,
+    profileImageUrl: profile?.is_default_image ? undefined : profile?.profile_image_url,
   };
 }

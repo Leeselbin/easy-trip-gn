@@ -13,8 +13,8 @@ usersRouter.post("/kakao", async (req, res) => {
 
   const user = await prisma.user.upsert({
     where: { kakaoId: String(kakaoId) },
-    update: { nickname, profileImageUrl },
-    create: { kakaoId: String(kakaoId), nickname, profileImageUrl },
+    update: { nickname, profileImageUrl: profileImageUrl ?? null },
+    create: { kakaoId: String(kakaoId), nickname, profileImageUrl: profileImageUrl ?? null },
   });
 
   res.json(user);

@@ -2,6 +2,8 @@ import cors from "cors";
 import express from "express";
 
 import { busStopsRouter } from "./routes/busStops";
+import { restaurantsRouter } from "./routes/restaurants";
+import { touristSpotsRouter } from "./routes/touristSpots";
 import { usersRouter } from "./routes/users";
 
 const app = express();
@@ -15,6 +17,8 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/bus-stops", busStopsRouter);
+app.use("/api/restaurants", restaurantsRouter);
+app.use("/api/tourist-spots", touristSpotsRouter);
 app.use("/api/users", usersRouter);
 
 app.listen(PORT, () => {

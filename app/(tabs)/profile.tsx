@@ -18,7 +18,9 @@ export default function ProfileScreen() {
         {user.profileImageUrl ? (
           <Image source={{ uri: user.profileImageUrl }} style={styles.avatar} />
         ) : (
-          <View style={[styles.avatar, styles.avatarPlaceholder]} />
+          <View style={[styles.avatar, styles.avatarPlaceholder]}>
+            <Text style={styles.avatarPlaceholderIcon}>👤</Text>
+          </View>
         )}
         <Text style={styles.nickname}>{user.nickname ?? '카카오 사용자'}</Text>
         <Text style={styles.userId}>카카오 회원번호 {user.id}</Text>
@@ -53,6 +55,12 @@ const styles = StyleSheet.create({
   },
   avatarPlaceholder: {
     backgroundColor: 'rgba(127,127,127,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarPlaceholderIcon: {
+    fontSize: 32,
+    opacity: 0.5,
   },
   nickname: {
     fontSize: 18,

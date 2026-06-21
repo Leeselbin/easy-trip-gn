@@ -6,8 +6,9 @@
 
 - **카카오 로그인** — REST API 기반 OAuth 인가코드 흐름 (`expo-auth-session`), 로그인 안 한 상태로 앱을 켜면 로그인 화면이 먼저 보이고, 로그인해야 탭 화면으로 진입할 수 있습니다.
 - **지도 / 탐색 탭** — `react-native-maps`로 강릉 지역 버스정류장을 마커로 표시하고, 정류장을 누르면 바텀시트로 노선별 도착시간·저상버스 여부를 보여줍니다 (`server/`의 API에서 조회, 현재는 시드된 더미 데이터).
+- **카테고리 버튼(음식점/정류장/관광지)** — 지도 상단 버튼으로 카테고리를 선택해서 해당 마커만 표시 (음식점/관광지도 현재는 시드된 더미 데이터, 추후 공공데이터 API 연동 예정).
 - **현재 위치로 이동** — 위치 권한을 요청하고, 지도 좌측 상단 버튼으로 현재 위치로 이동합니다.
-- **마이페이지** — 카카오 프로필(닉네임, 프로필 사진) 표시 및 로그아웃.
+- **마이페이지** — 카카오 프로필(닉네임, 프로필 사진) 표시 및 로그아웃. 카카오 기본 프로필 이미지인 경우 자체 플레이스홀더 아이콘을 보여줍니다.
 
 ## 기술 스택
 
@@ -84,6 +85,8 @@ npm run dev               # http://localhost:4000
 
 - `GET /health` — 헬스체크
 - `GET /api/bus-stops` — 정류장 목록 (노선별 도착정보 포함)
+- `GET /api/restaurants` — 음식점 목록
+- `GET /api/tourist-spots` — 관광지 목록
 
 ## 폴더 구조
 
@@ -94,13 +97,15 @@ app/                  expo-router 화면 (파일 = 라우트)
 components/            공용 UI 컴포넌트
 store/authStore.ts     Zustand 전역 스토어 — 카카오 로그인 상태(user, isLoading)와 로그인/로그아웃 액션
 hooks/useBusStops.ts   React Query 훅 — server/ API에서 버스정류장 데이터 조회
+hooks/useRestaurants.ts, useTouristSpots.ts  React Query 훅 — 음식점/관광지 데이터 조회
 lib/                   카카오 OAuth, 위치 권한, API 클라이언트(lib/api.ts) 등 순수 로직
 constants/busStops.ts  버스정류장/도착정보 타입 정의 (BusStop, BusArrival)
+constants/places.ts    음식점/관광지 타입 정의 (Restaurant, TouristSpot)
 docs/redirect.html     카카오 로그인용 Redirect URI 브릿지 페이지 (GitHub Pages)
-server/                Express + Prisma 백엔드 (버스정류장 API, 앱과 별도 실행)
+server/                Express + Prisma 백엔드 (버스정류장/음식점/관광지 API, 앱과 별도 실행)
   src/index.ts          서버 엔트리포인트
-  src/routes/           API 라우트
-  prisma/schema.prisma   DB 스키마 (BusStop, BusArrival)
+  src/routes/           API 라우트 (busStops, restaurants, touristSpots, users)
+  prisma/schema.prisma   DB 스키마 (BusStop, BusArrival, Restaurant, TouristSpot, User)
   prisma/seed.ts         더미 데이터 시드 스크립트
 ```
 
