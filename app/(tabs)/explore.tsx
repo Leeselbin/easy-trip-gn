@@ -9,14 +9,10 @@ import {
 import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 
 import BusStopSheet from "@/components/BusStopSheet";
-import { View } from "@/components/Themed";
-import { BUS_STOPS, type BusStop } from "@/constants/busStops";
+import { Text, View } from "@/components/Themed";
+import { type BusStop } from "@/constants/busStops";
+import { useBusStops } from "@/hooks/useBusStops";
 import { ensureLocationPermission } from "@/lib/location";
-
-const ROUTE_COORDINATES = BUS_STOPS.map(({ latitude, longitude }) => ({
-  latitude,
-  longitude,
-}));
 
 const INITIAL_REGION: Region = {
   latitude: 37.7634,
@@ -35,6 +31,9 @@ export default function ExploreScreen() {
     Record<string, React.ComponentRef<typeof Marker> | null>
   >({});
   const [selectedStop, setSelectedStop] = useState<BusStop | null>(null);
+  const { data: busStops, isLoading, isError } = useBusStops();
+  const routeCoordinates =
+    busStops?.map(({ latitude, longitude }) => ({ latitude, longitude })) ?? [];
 
   const closeSheet = () => {
     if (selectedStop) {
@@ -81,7 +80,7 @@ export default function ExploreScreen() {
           regionRef.current = nextRegion;
         }}
       >
-        {BUS_STOPS.map((stop) => (
+        {busStops?.map((stop) => (
           <Marker
             key={stop.id}
             ref={(ref) => {
@@ -96,11 +95,22 @@ export default function ExploreScreen() {
           />
         ))}
         <Polyline
-          coordinates={ROUTE_COORDINATES}
+          coordinates={routeCoordinates}
           strokeColor="#2f95dc"
           strokeWidth={4}
         />
       </MapView>
+
+      {isLoading && (
+        <RNView style={styles.statusBanner}>
+          <Text>정류장 정보를 불러오는 중...</Text>
+        </RNView>
+      )}
+      {isError && (
+        <RNView style={styles.statusBanner}>
+          <Text>정류장 정보를 불러오지 못했습니다.</Text>
+        </RNView>
+      )}
 
       <Pressable style={styles.locationButton} onPress={goToCurrentLocation}>
         <RNText style={styles.locationButtonText}>⊙</RNText>
@@ -178,5 +188,19 @@ const styles = StyleSheet.create({
   zoomDivider: {
     height: 1,
     backgroundColor: "rgba(0,0,0,0.1)",
+  },
+  statusBanner: {
+    position: "absolute",
+    bottom: 24,
+    alignSelf: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
   },
 });
