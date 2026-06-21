@@ -32,6 +32,10 @@ yarn-error.*
 
 # local env files
 .env*.local
+server/.env
+
+# Prisma SQLite dev database
+server/prisma/dev.db
 
 # typescript
 *.tsbuildinfo

@@ -15,6 +15,7 @@
 - React Native 0.85, React 19
 - `react-native-maps`, `expo-location`, `expo-auth-session`, `expo-secure-store`
 - `zustand` — 전역 상태 관리 (현재는 로그인 상태 하나, `store/authStore.ts`)
+- `server/` — Express + Prisma 백엔드 (버스정류장/도착정보 API, 아직 앱과 연동 전)
 
 ## 시작하기
 
@@ -65,6 +66,21 @@ npm start
 
 > Android는 아직 `react-native-maps`용 Google Maps API 키가 설정되어 있지 않습니다 (`app.json`의 `react-native-maps` 플러그인에 `androidGoogleMapsApiKey` 추가 필요).
 
+## 백엔드 서버 (`server/`)
+
+`constants/busStops.ts`의 더미 데이터를 실제 공공데이터로 교체하기 위한 Express + Prisma API 서버입니다. 현재는 앱에서 호출하지 않고 독립적으로 동작합니다 (로컬 개발용 SQLite 사용).
+
+```bash
+cd server
+npm install
+cp .env.example .env
+npm run prisma:migrate   # 스키마 적용 + 더미 데이터 시드
+npm run dev               # http://localhost:4000
+```
+
+- `GET /health` — 헬스체크
+- `GET /api/bus-stops` — 정류장 목록 (노선별 도착정보 포함)
+
 ## 폴더 구조
 
 ```
@@ -76,6 +92,11 @@ store/authStore.ts     Zustand 전역 스토어 — 카카오 로그인 상태(u
 lib/                   카카오 OAuth, 위치 권한 등 순수 로직
 constants/busStops.ts  버스정류장 더미 데이터
 docs/redirect.html     카카오 로그인용 Redirect URI 브릿지 페이지 (GitHub Pages)
+server/                Express + Prisma 백엔드 (버스정류장 API, 앱과 별도 실행)
+  src/index.ts          서버 엔트리포인트
+  src/routes/           API 라우트
+  prisma/schema.prisma   DB 스키마 (BusStop, BusArrival)
+  prisma/seed.ts         더미 데이터 시드 스크립트
 ```
 
 ## 전역 상태 관리
