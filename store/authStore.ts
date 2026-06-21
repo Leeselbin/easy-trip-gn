@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { create } from "zustand";
 
+import { upsertKakaoUser } from "@/lib/api";
 import {
   KAKAO_DISCOVERY,
   KAKAO_REST_API_KEY,
@@ -75,6 +76,12 @@ async function signInWithToken(
   const kakaoUser = await fetchKakaoUser(accessToken);
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
   set({ user: kakaoUser });
+
+  try {
+    await upsertKakaoUser(kakaoUser);
+  } catch (error) {
+    console.warn("Failed to save Kakao user to server:", error);
+  }
 }
 
 // 앱이 처음 로드될 때 한 번, 저장된 토큰으로 자동 로그인을 시도합니다.

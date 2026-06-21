@@ -23,3 +23,12 @@ model BusArrival {
   busStop        BusStop @relation(fields: [busStopId], references: [id])
   busStopId      String
 }
+
+model User {
+  id              Int      @id @default(autoincrement())
+  kakaoId         String   @unique
+  nickname        String?
+  profileImageUrl String?
+  createdAt       DateTime @default(now())
+  lastLoginAt     DateTime @updatedAt
+}
