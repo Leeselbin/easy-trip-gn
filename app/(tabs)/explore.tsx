@@ -1,14 +1,22 @@
-import * as Location from 'expo-location';
-import { useRef, useState } from 'react';
-import MapView, { Marker, Polyline, type Region } from 'react-native-maps';
-import { Pressable, StyleSheet, Text as RNText, View as RNView } from 'react-native';
+import * as Location from "expo-location";
+import { useRef, useState } from "react";
+import {
+  Pressable,
+  Text as RNText,
+  View as RNView,
+  StyleSheet,
+} from "react-native";
+import MapView, { Marker, Polyline, type Region } from "react-native-maps";
 
-import { View } from '@/components/Themed';
-import BusStopSheet from '@/components/BusStopSheet';
-import { BUS_STOPS, type BusStop } from '@/constants/busStops';
-import { ensureLocationPermission } from '@/lib/location';
+import BusStopSheet from "@/components/BusStopSheet";
+import { View } from "@/components/Themed";
+import { BUS_STOPS, type BusStop } from "@/constants/busStops";
+import { ensureLocationPermission } from "@/lib/location";
 
-const ROUTE_COORDINATES = BUS_STOPS.map(({ latitude, longitude }) => ({ latitude, longitude }));
+const ROUTE_COORDINATES = BUS_STOPS.map(({ latitude, longitude }) => ({
+  latitude,
+  longitude,
+}));
 
 const INITIAL_REGION: Region = {
   latitude: 37.7634,
@@ -17,13 +25,15 @@ const INITIAL_REGION: Region = {
   longitudeDelta: 0.08,
 };
 
-// 1보다 작을수록 더 많이 확대됨 — 0.8이면 한 번 누를 때 살짝씩 줌인/줌아웃
-const ZOOM_STEP = 0.8;
+// 1보다 작을수록 더 많이 확대됨 살짝씩 줌인/줌아웃
+const ZOOM_STEP = 0.5;
 
 export default function ExploreScreen() {
   const mapRef = useRef<MapView>(null);
   const regionRef = useRef<Region>(INITIAL_REGION);
-  const markerRefs = useRef<Record<string, React.ComponentRef<typeof Marker> | null>>({});
+  const markerRefs = useRef<
+    Record<string, React.ComponentRef<typeof Marker> | null>
+  >({});
   const [selectedStop, setSelectedStop] = useState<BusStop | null>(null);
 
   const closeSheet = () => {
@@ -69,7 +79,8 @@ export default function ExploreScreen() {
         showsUserLocation
         onRegionChangeComplete={(nextRegion) => {
           regionRef.current = nextRegion;
-        }}>
+        }}
+      >
         {BUS_STOPS.map((stop) => (
           <Marker
             key={stop.id}
@@ -78,11 +89,17 @@ export default function ExploreScreen() {
             }}
             coordinate={{ latitude: stop.latitude, longitude: stop.longitude }}
             title={stop.name}
-            pinColor={stop.arrivals.some((a) => a.isLowFloor) ? '#2f95dc' : '#999999'}
+            pinColor={
+              stop.arrivals.some((a) => a.isLowFloor) ? "#2f95dc" : "#999999"
+            }
             onPress={() => setSelectedStop(stop)}
           />
         ))}
-        <Polyline coordinates={ROUTE_COORDINATES} strokeColor="#2f95dc" strokeWidth={4} />
+        <Polyline
+          coordinates={ROUTE_COORDINATES}
+          strokeColor="#2f95dc"
+          strokeWidth={4}
+        />
       </MapView>
 
       <Pressable style={styles.locationButton} onPress={goToCurrentLocation}>
@@ -94,7 +111,10 @@ export default function ExploreScreen() {
           <RNText style={styles.zoomButtonText}>＋</RNText>
         </Pressable>
         <RNView style={styles.zoomDivider} />
-        <Pressable style={styles.zoomButton} onPress={() => zoom(1 / ZOOM_STEP)}>
+        <Pressable
+          style={styles.zoomButton}
+          onPress={() => zoom(1 / ZOOM_STEP)}
+        >
           <RNText style={styles.zoomButtonText}>－</RNText>
         </Pressable>
       </RNView>
@@ -112,16 +132,16 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   locationButton: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
     left: 16,
     width: 34,
     height: 34,
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -129,15 +149,15 @@ const styles = StyleSheet.create({
   },
   locationButtonText: {
     fontSize: 18,
-    color: '#2f95dc',
+    color: "#2f95dc",
   },
   zoomControls: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
     right: 16,
     borderRadius: 10,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -146,17 +166,17 @@ const styles = StyleSheet.create({
   zoomButton: {
     width: 34,
     height: 34,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#fff',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
   },
   zoomButtonText: {
     fontSize: 17,
-    fontWeight: '600',
-    color: '#333',
+    fontWeight: "600",
+    color: "#333",
   },
   zoomDivider: {
     height: 1,
-    backgroundColor: 'rgba(0,0,0,0.1)',
+    backgroundColor: "rgba(0,0,0,0.1)",
   },
 });

@@ -1,22 +1,26 @@
-import * as AuthSession from 'expo-auth-session';
-import * as Linking from 'expo-linking';
-import * as SecureStore from 'expo-secure-store';
-import * as WebBrowser from 'expo-web-browser';
-import { create } from 'zustand';
+import * as AuthSession from "expo-auth-session";
+import * as Linking from "expo-linking";
+import * as SecureStore from "expo-secure-store";
+import * as WebBrowser from "expo-web-browser";
+import { create } from "zustand";
 
-import { KAKAO_DISCOVERY, KAKAO_REST_API_KEY, type KakaoUser, fetchKakaoUser } from '@/lib/kakaoAuth';
+import {
+  KAKAO_DISCOVERY,
+  KAKAO_REST_API_KEY,
+  type KakaoUser,
+  fetchKakaoUser,
+} from "@/lib/kakaoAuth";
 
-const ACCESS_TOKEN_KEY = 'kakao_access_token';
+const ACCESS_TOKEN_KEY = "kakao_access_token";
 
-// Kakao only accepts http(s) redirect URIs, so the login flow bounces through
-// this static bridge page, which immediately forwards the auth code into the
-// app via its custom URL scheme (see docs/redirect.html).
-const BRIDGE_REDIRECT_URI = process.env.EXPO_PUBLIC_KAKAO_BRIDGE_REDIRECT_URI ?? '';
-const APP_RETURN_URL = AuthSession.makeRedirectUri({ scheme: 'easytripgn', path: 'redirect' });
+const BRIDGE_REDIRECT_URI =
+  process.env.EXPO_PUBLIC_KAKAO_BRIDGE_REDIRECT_URI ?? "";
+const APP_RETURN_URL = AuthSession.makeRedirectUri({
+  scheme: "easytripgn",
+  path: "redirect",
+});
 
-// Optional consent items in Kakao Developers must be requested explicitly
-// via `scope`, otherwise Kakao won't ask the user for them at all.
-const KAKAO_SCOPES = ['profile_nickname', 'profile_image'];
+const KAKAO_SCOPES = ["profile_nickname", "profile_image"];
 
 type AuthState = {
   user: KakaoUser | null;
@@ -36,13 +40,18 @@ export const useAuthStore = create<AuthState>((set) => ({
       `${KAKAO_DISCOVERY.authorizationEndpoint}?response_type=code` +
       `&client_id=${encodeURIComponent(KAKAO_REST_API_KEY)}` +
       `&redirect_uri=${encodeURIComponent(BRIDGE_REDIRECT_URI)}` +
-      `&scope=${encodeURIComponent(KAKAO_SCOPES.join(','))}`;
+      `&scope=${encodeURIComponent(KAKAO_SCOPES.join(","))}`;
 
-    const result = await WebBrowser.openAuthSessionAsync(authUrl, APP_RETURN_URL);
-    if (result.type !== 'success' || !result.url) return;
+    const result = await WebBrowser.openAuthSessionAsync(
+      authUrl,
+      APP_RETURN_URL
+    );
+    if (result.type !== "success" || !result.url) return;
 
     const { queryParams } = Linking.parse(result.url);
-    const code = Array.isArray(queryParams?.code) ? queryParams.code[0] : queryParams?.code;
+    const code = Array.isArray(queryParams?.code)
+      ? queryParams.code[0]
+      : queryParams?.code;
     if (!code) return;
 
     const tokenResponse = await AuthSession.exchangeCodeAsync(
@@ -59,7 +68,10 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }));
 
-async function signInWithToken(accessToken: string, set: (partial: Partial<AuthState>) => void) {
+async function signInWithToken(
+  accessToken: string,
+  set: (partial: Partial<AuthState>) => void
+) {
   const kakaoUser = await fetchKakaoUser(accessToken);
   await SecureStore.setItemAsync(ACCESS_TOKEN_KEY, accessToken);
   set({ user: kakaoUser });
