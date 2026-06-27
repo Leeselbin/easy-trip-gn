@@ -100,6 +100,7 @@ store/authStore.ts     Zustand 전역 스토어 — 카카오 로그인 상태(u
 hooks/useBusStops.ts   React Query 훅 — server/ API에서 버스정류장 데이터 조회
 hooks/useRestaurants.ts, useTouristSpots.ts  React Query 훅 — 음식점/관광지 데이터 조회
 lib/                   카카오 OAuth, 위치 권한, API 클라이언트(lib/api.ts) 등 순수 로직
+lib/geo.ts             두 좌표 간 거리(km) 계산 — 하버사인(Haversine) 공식, 지구 반지름 6371km 기준
 constants/busStops.ts  버스정류장/도착정보 타입 정의 (BusStop, BusArrival)
 constants/places.ts    음식점/관광지 타입 정의 (Restaurant, TouristSpot)
 docs/redirect.html     카카오 로그인용 Redirect URI 브릿지 페이지 (GitHub Pages)

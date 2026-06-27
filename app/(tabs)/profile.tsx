@@ -1,7 +1,15 @@
-import { Image, Pressable, StyleSheet } from 'react-native';
+import { SymbolView } from 'expo-symbols';
+import { Image, Pressable, ScrollView, StyleSheet, View as RNView } from 'react-native';
 
 import { Text, View } from '@/components/ui/Themed';
 import { useAuthStore } from '@/store/authStore';
+
+const MENU_ITEMS = [
+  { key: 'favorites', label: '즐겨찾기', icon: { ios: 'star', android: 'star', web: 'star' } },
+  { key: 'notice', label: '공지사항', icon: { ios: 'megaphone', android: 'campaign', web: 'campaign' } },
+  { key: 'inquiry', label: '문의하기', icon: { ios: 'bubble.left.and.bubble.right', android: 'chat', web: 'chat' } },
+  { key: 'about', label: '앱 정보', icon: { ios: 'info.circle', android: 'info', web: 'info' } },
+] as const;
 
 export default function ProfileScreen() {
   const { user, signOut } = useAuthStore();
@@ -11,10 +19,8 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>마이페이지</Text>
-
-      <View style={styles.card}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <RNView style={styles.profileHeader}>
         {user.profileImageUrl ? (
           <Image source={{ uri: user.profileImageUrl }} style={styles.avatar} />
         ) : (
@@ -22,36 +28,65 @@ export default function ProfileScreen() {
             <Text style={styles.avatarPlaceholderIcon}>👤</Text>
           </View>
         )}
-        <Text style={styles.nickname}>{user.nickname ?? '카카오 사용자'}</Text>
-        <Text style={styles.userId}>카카오 회원번호 {user.id}</Text>
-      </View>
+        <RNView style={styles.profileInfo}>
+          <Text style={styles.nickname}>{user.nickname ?? '카카오 사용자'}</Text>
+          <Text style={styles.userId}>회원번호 {user.id}</Text>
+        </RNView>
+      </RNView>
+
+      <RNView style={styles.menuSection}>
+        {MENU_ITEMS.map((item, index) => (
+          <RNView
+            key={item.key}
+            style={[
+              styles.menuRow,
+              index === MENU_ITEMS.length - 1 && styles.menuRowLast,
+            ]}
+          >
+            <SymbolView name={item.icon} tintColor="#999" size={20} />
+            <Text style={styles.menuLabel}>{item.label}</Text>
+            <RNView style={styles.comingSoonBadge}>
+              <Text style={styles.comingSoonText}>준비중</Text>
+            </RNView>
+          </RNView>
+        ))}
+      </RNView>
 
       <Pressable style={styles.button} onPress={signOut}>
         <Text style={styles.buttonText}>로그아웃</Text>
       </Pressable>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 16,
   },
-  title: {
-    fontSize: 20,
-    fontWeight: 'bold',
+  content: {
+    padding: 20,
+    gap: 24,
   },
-  card: {
+  profileHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 14,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  profileInfo: {
+    gap: 4,
   },
   avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
   },
   avatarPlaceholder: {
     backgroundColor: 'rgba(127,127,127,0.2)',
@@ -59,18 +94,56 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarPlaceholderIcon: {
-    fontSize: 32,
+    fontSize: 26,
     opacity: 0.5,
   },
   nickname: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: '600',
   },
   userId: {
     fontSize: 13,
     opacity: 0.6,
   },
+  menuSection: {
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(127,127,127,0.12)',
+  },
+  menuRowLast: {
+    borderBottomWidth: 0,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 15,
+    opacity: 0.5,
+  },
+  comingSoonBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 999,
+    backgroundColor: 'rgba(127,127,127,0.15)',
+  },
+  comingSoonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    opacity: 0.5,
+  },
   button: {
+    alignItems: 'center',
     backgroundColor: '#FEE500',
     paddingVertical: 12,
     paddingHorizontal: 24,
