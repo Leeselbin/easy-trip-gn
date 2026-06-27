@@ -1,8 +1,10 @@
-import { useEffect, useRef } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Pressable, ScrollView, StyleSheet, useWindowDimensions } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+import { Text, View } from '@/components/ui/Themed';
 import type { BusStop } from '@/constants/busStops';
+
+const OFFSCREEN_Y = 360;
 
 export default function BusStopSheet({
   stop,
@@ -11,18 +13,31 @@ export default function BusStopSheet({
   stop: BusStop | null;
   onClose: () => void;
 }) {
-  const translateY = useRef(new Animated.Value(360)).current;
+  const translateY = useRef(new Animated.Value(OFFSCREEN_Y)).current;
   const { height: windowHeight } = useWindowDimensions();
+  const [content, setContent] = useState<BusStop | null>(null);
 
   useEffect(() => {
-    Animated.timing(translateY, {
-      toValue: stop ? 0 : 360,
-      duration: 220,
-      useNativeDriver: true,
-    }).start();
-  }, [stop, translateY]);
+    if (stop) {
+      setContent(stop);
+      translateY.setValue(OFFSCREEN_Y);
+      Animated.timing(translateY, {
+        toValue: 0,
+        duration: 280,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start();
+    } else if (content) {
+      Animated.timing(translateY, {
+        toValue: OFFSCREEN_Y,
+        duration: 220,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => setContent(null));
+    }
+  }, [stop, translateY, content]);
 
-  if (!stop) {
+  if (!content) {
     return null;
   }
 
@@ -33,7 +48,7 @@ export default function BusStopSheet({
         <View style={styles.sheet}>
           <View style={styles.handle} />
           <View style={styles.header}>
-            <Text style={styles.title}>{stop.name}</Text>
+            <Text style={styles.title}>{content.name}</Text>
             <Text style={styles.subtitle}>버스 도착정보</Text>
           </View>
 
@@ -41,7 +56,7 @@ export default function BusStopSheet({
             style={{ maxHeight: Math.min(windowHeight * 0.3, 220) }}
             showsVerticalScrollIndicator={false}
             bounces={false}>
-            {stop.arrivals.map((arrival) => (
+            {content.arrivals.map((arrival) => (
               <View key={arrival.routeName} style={styles.row}>
                 <View style={styles.routeChip}>
                   <Text style={styles.routeChipText}>{arrival.routeName}</Text>

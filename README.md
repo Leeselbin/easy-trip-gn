@@ -94,7 +94,8 @@ npm run dev               # http://localhost:4000
 app/                  expo-router 화면 (파일 = 라우트)
   (tabs)/              홈 / 탐색(지도) / 마이페이지 탭
   login.tsx            로그인 화면
-components/            공용 UI 컴포넌트
+components/            화면별 전용 컴포넌트 (BusStopSheet, PlaceSheet 등)
+components/ui/         여러 화면에서 같이 쓰는 범용 UI 컴포넌트 (Themed: Text, View)
 store/authStore.ts     Zustand 전역 스토어 — 카카오 로그인 상태(user, isLoading)와 로그인/로그아웃 액션
 hooks/useBusStops.ts   React Query 훅 — server/ API에서 버스정류장 데이터 조회
 hooks/useRestaurants.ts, useTouristSpots.ts  React Query 훅 — 음식점/관광지 데이터 조회
@@ -108,6 +109,15 @@ server/                Express + Prisma 백엔드 (버스정류장/음식점/관
   prisma/schema.prisma   DB 스키마 (BusStop, BusArrival, Restaurant, TouristSpot, User)
   prisma/seed.ts         더미 데이터 시드 스크립트
 ```
+
+## 컴포넌트 구조
+
+컴포넌트가 아직 많지 않아 atomic design(atoms/molecules/organisms) 같은 세분화된 분류는 적용하지 않고, 가볍게 두 군데로만 나눕니다.
+
+- `components/ui/` — 여러 화면에서 재사용하는 범용 컴포넌트 (예: `Themed`의 `Text`/`View`)
+- `components/` — 특정 화면/기능에만 쓰이는 컴포넌트 (예: 탐색 탭에서만 쓰는 `BusStopSheet`, `PlaceSheet`)
+
+비슷한 패턴의 컴포넌트(시트류 등)가 더 늘어나면 그때 공통 로직을 묶는 걸 고려합니다.
 
 ## 전역 상태 관리
 

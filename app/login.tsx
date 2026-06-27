@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet } from 'react-native';
 
-import { Text, View } from '@/components/Themed';
+import { Text, View } from '@/components/ui/Themed';
 import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
