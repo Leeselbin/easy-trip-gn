@@ -14,20 +14,23 @@ import PlaceSheet, { type SimplePlace } from "@/components/PlaceSheet";
 import { Text, View } from "@/components/ui/Themed";
 import { type BusStop } from "@/constants/busStops";
 import { useBusStops } from "@/hooks/useBusStops";
-import { useRestaurants } from "@/hooks/useRestaurants";
-import { useTouristSpots } from "@/hooks/useTouristSpots";
+import { useTourPlaces } from "@/hooks/useTourPlaces";
 import { ensureLocationPermission } from "@/lib/location";
+import { radiusFromLatitudeDelta } from "@/lib/tourApi";
 
 const INITIAL_REGION: Region = {
   latitude: 37.7634,
   longitude: 128.8995,
-  latitudeDelta: 0.04,
-  longitudeDelta: 0.04,
+  latitudeDelta: 0.015,
+  longitudeDelta: 0.015,
 };
 
 // 1보다 작을수록 더 많이 확대됨 살짝씩 줌인/줌아웃
 const ZOOM_STEP = 0.5;
 const FOCUS_DELTA = 0.01;
+
+// 화면에 보이는 마커가 이 개수 이하로 듬성듬성해지면(=충분히 확대됨) 이름표를 같이 띄웁니다.
+const LABEL_VISIBLE_MAX_MARKERS = 8;
 
 type Category = "busStop" | "restaurant" | "tour";
 
@@ -49,19 +52,40 @@ export default function ExploreScreen() {
   const markerRefs = useRef<
     Record<string, React.ComponentRef<typeof Marker> | null>
   >({});
-  const { category: categoryParam, placeId } = useLocalSearchParams<{
-    category?: Category;
-    placeId?: string;
-  }>();
+  const { category: categoryParam, placeId, name, latitude, longitude } =
+    useLocalSearchParams<{
+      category?: Category;
+      placeId?: string;
+      name?: string;
+      latitude?: string;
+      longitude?: string;
+    }>();
   const [selectedStop, setSelectedStop] = useState<BusStop | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<SimplePlace | null>(null);
   const [category, setCategory] = useState<Category>(
     categoryParam ?? "busStop"
   );
   const [mapReady, setMapReady] = useState(false);
+  const [mapView, setMapView] = useState({
+    latitude: INITIAL_REGION.latitude,
+    longitude: INITIAL_REGION.longitude,
+    radius: radiusFromLatitudeDelta(INITIAL_REGION.latitudeDelta),
+  });
+  const mapCenter = { latitude: mapView.latitude, longitude: mapView.longitude };
+  const regionDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasHandledInitialRegion = useRef(false);
+  const handledPlaceKeyRef = useRef<string | null>(null);
   const { data: busStops, isLoading, isError } = useBusStops();
-  const { data: restaurants } = useRestaurants();
-  const { data: touristSpots } = useTouristSpots();
+  const {
+    data: restaurants,
+    isLoading: isRestaurantsLoading,
+    isError: isRestaurantsError,
+  } = useTourPlaces("39", mapCenter, mapView.radius, category === "restaurant");
+  const {
+    data: touristSpots,
+    isLoading: isTouristSpotsLoading,
+    isError: isTouristSpotsError,
+  } = useTourPlaces("12", mapCenter, mapView.radius, category === "tour");
 
   useEffect(() => {
     if (categoryParam) {
@@ -69,15 +93,28 @@ export default function ExploreScreen() {
     }
   }, [categoryParam]);
 
-  const focusOn = (latitude: number, longitude: number) => {
+  const focusOn = (lat: number, lng: number) => {
     const nextRegion: Region = {
-      latitude,
-      longitude,
+      latitude: lat,
+      longitude: lng,
       latitudeDelta: FOCUS_DELTA,
       longitudeDelta: FOCUS_DELTA,
     };
     regionRef.current = nextRegion;
+    setMapView({
+      latitude: lat,
+      longitude: lng,
+      radius: radiusFromLatitudeDelta(FOCUS_DELTA),
+    });
     mapRef.current?.animateToRegion(nextRegion, 300);
+  };
+
+  const focusAndShowCallout = (id: string, lat: number, lng: number) => {
+    focusOn(lat, lng);
+    // 카테고리 전환/위치 이동 직후엔 마커가 막 렌더링되는 시점이라, 한 틱 뒤에 콜아웃을 띄워야 ref가 잡혀있음
+    setTimeout(() => {
+      markerRefs.current[id]?.showCallout();
+    }, 400);
   };
 
   useEffect(() => {
@@ -85,42 +122,45 @@ export default function ExploreScreen() {
       return;
     }
 
-    let matchedId: string | undefined;
+    // 같은 placeId는 한 번만 처리합니다. (지도 이동으로 음식점/관광지 데이터가
+    // 다시 조회될 때마다 effect가 재실행돼서, 처리 안 하면 같은 장소로 계속 다시 포커스됨)
+    const placeKey = `${categoryParam}:${placeId}`;
+    if (handledPlaceKeyRef.current === placeKey) {
+      return;
+    }
 
     if (categoryParam === "busStop") {
       const stop = busStops?.find((s) => s.id === placeId);
       if (stop) {
+        handledPlaceKeyRef.current = placeKey;
         setSelectedPlace(null);
         setSelectedStop(stop);
-        focusOn(stop.latitude, stop.longitude);
-        matchedId = stop.id;
+        focusAndShowCallout(stop.id, stop.latitude, stop.longitude);
       }
-    } else if (categoryParam === "restaurant") {
-      const restaurant = restaurants?.find((r) => r.id === placeId);
-      if (restaurant) {
-        setSelectedStop(null);
-        setSelectedPlace({ id: restaurant.id, name: restaurant.name, categoryLabel: CATEGORY_LABEL.restaurant });
-        focusOn(restaurant.latitude, restaurant.longitude);
-        matchedId = restaurant.id;
-      }
-    } else if (categoryParam === "tour") {
-      const spot = touristSpots?.find((t) => t.id === placeId);
-      if (spot) {
-        setSelectedStop(null);
-        setSelectedPlace({ id: spot.id, name: spot.name, categoryLabel: CATEGORY_LABEL.tour });
-        focusOn(spot.latitude, spot.longitude);
-        matchedId = spot.id;
-      }
+      return;
     }
 
-    if (matchedId) {
-      // 카테고리 전환 시 해당 마커가 막 렌더링되는 시점이라, 한 틱 뒤에 콜아웃을 띄워야 ref가 잡혀있음
-      const timeoutId = setTimeout(() => {
-        markerRefs.current[matchedId!]?.showCallout();
-      }, 400);
-      return () => clearTimeout(timeoutId);
+    // 음식점/관광지는 위치 기반으로 매번 다른 데이터가 잡혀서, 홈에서 넘어온 좌표/이름으로 바로 포커스합니다.
+    const lat = latitude ? parseFloat(latitude) : undefined;
+    const lng = longitude ? parseFloat(longitude) : undefined;
+    if (lat !== undefined && lng !== undefined && name) {
+      handledPlaceKeyRef.current = placeKey;
+      setSelectedStop(null);
+      setSelectedPlace({ id: placeId, name, categoryLabel: CATEGORY_LABEL[categoryParam] });
+      focusAndShowCallout(placeId, lat, lng);
+      return;
     }
-  }, [placeId, categoryParam, busStops, restaurants, touristSpots, mapReady]);
+
+    // 마커를 직접 눌러서 들어온 경우(좌표 파라미터 없음)엔 이미 로드된 목록에서 찾습니다.
+    const list = categoryParam === "restaurant" ? restaurants : touristSpots;
+    const item = list?.find((p) => p.id === placeId);
+    if (item) {
+      handledPlaceKeyRef.current = placeKey;
+      setSelectedStop(null);
+      setSelectedPlace({ id: item.id, name: item.name, categoryLabel: CATEGORY_LABEL[categoryParam] });
+      focusAndShowCallout(item.id, item.latitude, item.longitude);
+    }
+  }, [placeId, categoryParam, name, latitude, longitude, busStops, restaurants, touristSpots, mapReady]);
 
   const routeCoordinates =
     busStops?.map(({ latitude, longitude }) => ({ latitude, longitude })) ?? [];
@@ -163,7 +203,34 @@ export default function ExploreScreen() {
       longitude: location.coords.longitude,
     };
     regionRef.current = nextRegion;
+    setMapView((prev) => ({
+      ...prev,
+      latitude: nextRegion.latitude,
+      longitude: nextRegion.longitude,
+    }));
     mapRef.current?.animateToRegion(nextRegion, 300);
+  };
+
+  const handleRegionChangeComplete = (nextRegion: Region) => {
+    regionRef.current = nextRegion;
+
+    // 지도가 처음 마운트될 때 네이티브 엔진이 initialRegion을 픽셀 비율에 맞게 보정하면서
+    // onRegionChangeComplete를 한 번 더 자동으로 쏘는데, 이건 사용자 동작이 아니라서 무시합니다.
+    if (!hasHandledInitialRegion.current) {
+      hasHandledInitialRegion.current = true;
+      return;
+    }
+
+    if (regionDebounceRef.current) {
+      clearTimeout(regionDebounceRef.current);
+    }
+    regionDebounceRef.current = setTimeout(() => {
+      setMapView({
+        latitude: nextRegion.latitude,
+        longitude: nextRegion.longitude,
+        radius: radiusFromLatitudeDelta(nextRegion.latitudeDelta),
+      });
+    }, 400);
   };
 
   return (
@@ -174,9 +241,7 @@ export default function ExploreScreen() {
         initialRegion={INITIAL_REGION}
         showsUserLocation
         onMapReady={() => setMapReady(true)}
-        onRegionChangeComplete={(nextRegion) => {
-          regionRef.current = nextRegion;
-        }}
+        onRegionChangeComplete={handleRegionChangeComplete}
       >
         {category === "busStop" &&
           busStops?.map((stop) => (
@@ -207,6 +272,43 @@ export default function ExploreScreen() {
           />
         )}
         {category === "restaurant" &&
+          (restaurants?.length ?? 0) <= LABEL_VISIBLE_MAX_MARKERS &&
+          restaurants?.map((restaurant) => (
+            <Marker
+              key={restaurant.id}
+              ref={(ref) => {
+                markerRefs.current[restaurant.id] = ref;
+              }}
+              coordinate={{
+                latitude: restaurant.latitude,
+                longitude: restaurant.longitude,
+              }}
+              title={restaurant.name}
+              onPress={() => {
+                setSelectedStop(null);
+                setSelectedPlace({ id: restaurant.id, name: restaurant.name, categoryLabel: CATEGORY_LABEL.restaurant });
+              }}
+            >
+              <RNView style={styles.markerWrap}>
+                <RNView style={styles.markerLabel}>
+                  <RNText style={styles.markerLabelText} numberOfLines={1}>
+                    {restaurant.name}
+                  </RNText>
+                </RNView>
+                <RNView
+                  style={[
+                    styles.markerDot,
+                    {
+                      backgroundColor:
+                        selectedPlace?.id === restaurant.id ? "#9c27b0" : "#ff7043",
+                    },
+                  ]}
+                />
+              </RNView>
+            </Marker>
+          ))}
+        {category === "restaurant" &&
+          (restaurants?.length ?? 0) > LABEL_VISIBLE_MAX_MARKERS &&
           restaurants?.map((restaurant) => (
             <Marker
               key={restaurant.id}
@@ -226,6 +328,40 @@ export default function ExploreScreen() {
             />
           ))}
         {category === "tour" &&
+          (touristSpots?.length ?? 0) <= LABEL_VISIBLE_MAX_MARKERS &&
+          touristSpots?.map((spot) => (
+            <Marker
+              key={spot.id}
+              ref={(ref) => {
+                markerRefs.current[spot.id] = ref;
+              }}
+              coordinate={{
+                latitude: spot.latitude,
+                longitude: spot.longitude,
+              }}
+              title={spot.name}
+              onPress={() => {
+                setSelectedStop(null);
+                setSelectedPlace({ id: spot.id, name: spot.name, categoryLabel: CATEGORY_LABEL.tour });
+              }}
+            >
+              <RNView style={styles.markerWrap}>
+                <RNView style={styles.markerLabel}>
+                  <RNText style={styles.markerLabelText} numberOfLines={1}>
+                    {spot.name}
+                  </RNText>
+                </RNView>
+                <RNView
+                  style={[
+                    styles.markerDot,
+                    { backgroundColor: selectedPlace?.id === spot.id ? "#9c27b0" : "#43a047" },
+                  ]}
+                />
+              </RNView>
+            </Marker>
+          ))}
+        {category === "tour" &&
+          (touristSpots?.length ?? 0) > LABEL_VISIBLE_MAX_MARKERS &&
           touristSpots?.map((spot) => (
             <Marker
               key={spot.id}
@@ -276,6 +412,26 @@ export default function ExploreScreen() {
       {category === "busStop" && isError && (
         <RNView style={styles.statusBanner}>
           <Text>정류장 정보를 불러오지 못했습니다.</Text>
+        </RNView>
+      )}
+      {category === "restaurant" && isRestaurantsLoading && (
+        <RNView style={styles.statusBanner}>
+          <Text>음식점 정보를 불러오는 중...</Text>
+        </RNView>
+      )}
+      {category === "restaurant" && isRestaurantsError && (
+        <RNView style={styles.statusBanner}>
+          <Text>음식점 정보를 불러오지 못했습니다.</Text>
+        </RNView>
+      )}
+      {category === "tour" && isTouristSpotsLoading && (
+        <RNView style={styles.statusBanner}>
+          <Text>관광지 정보를 불러오는 중...</Text>
+        </RNView>
+      )}
+      {category === "tour" && isTouristSpotsError && (
+        <RNView style={styles.statusBanner}>
+          <Text>관광지 정보를 불러오지 못했습니다.</Text>
         </RNView>
       )}
 
@@ -356,6 +512,39 @@ const styles = StyleSheet.create({
   zoomDivider: {
     height: 1,
     backgroundColor: "rgba(0,0,0,0.1)",
+  },
+  markerWrap: {
+    alignItems: "center",
+  },
+  markerDot: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 2,
+    borderColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 3,
+  },
+  markerLabel: {
+    marginBottom: 4,
+    maxWidth: 120,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    backgroundColor: "#fff",
+    shadowColor: "#000",
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
+  },
+  markerLabelText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#333",
   },
   categoryBar: {
     position: "absolute",

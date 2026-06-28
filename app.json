@@ -9,7 +9,17 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.easy-trip-gn"
+      "bundleIdentifier": "com.anonymous.easy-trip-gn",
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSExceptionDomains": {
+            "122.43.226.4": {
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSIncludesSubdomains": false
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +29,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.easytripgn"
+      "package": "com.anonymous.easytripgn",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",
@@ -37,7 +48,12 @@
         }
       ],
       "expo-secure-store",
-      "react-native-maps",
+      [
+        "react-native-maps",
+        {
+          "androidGoogleMapsApiKey": "AIzaSyA4KqXzYW3liO5nzBeXbGeiBlZ0m_yoIrg"
+        }
+      ],
       [
         "expo-location",
         {

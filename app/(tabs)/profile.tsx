@@ -1,3 +1,4 @@
+import Constants from 'expo-constants';
 import { SymbolView } from 'expo-symbols';
 import { Image, Pressable, ScrollView, StyleSheet, View as RNView } from 'react-native';
 
@@ -55,6 +56,11 @@ export default function ProfileScreen() {
       <Pressable style={styles.button} onPress={signOut}>
         <Text style={styles.buttonText}>로그아웃</Text>
       </Pressable>
+
+      <Text style={styles.version}>
+        버전 {Constants.nativeApplicationVersion ?? Constants.expoConfig?.version}
+        {Constants.nativeBuildVersion ? ` (${Constants.nativeBuildVersion})` : ''}
+      </Text>
     </ScrollView>
   );
 }
@@ -152,5 +158,10 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#000',
     fontWeight: '600',
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: 12,
+    opacity: 0.4,
   },
 });

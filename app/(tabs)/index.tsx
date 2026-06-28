@@ -11,13 +11,13 @@ import {
 
 import { Text } from "@/components/ui/Themed";
 import { useBusStops } from "@/hooks/useBusStops";
-import { useRestaurants } from "@/hooks/useRestaurants";
-import { useTouristSpots } from "@/hooks/useTouristSpots";
+import { useTourPlaces } from "@/hooks/useTourPlaces";
 import { distanceKm } from "@/lib/geo";
 import { ensureLocationPermission } from "@/lib/location";
 import { useAuthStore } from "@/store/authStore";
 
 const GANGNEUNG_CENTER = { latitude: 37.7634, longitude: 128.8995 };
+const NEARBY_RADIUS_METERS = 5000;
 
 type Category = "restaurant" | "busStop" | "tour";
 
@@ -54,8 +54,8 @@ export default function HomeScreen() {
   const [coords, setCoords] = useState(GANGNEUNG_CENTER);
 
   const { data: busStops } = useBusStops();
-  const { data: restaurants } = useRestaurants();
-  const { data: touristSpots } = useTouristSpots();
+  const { data: restaurants } = useTourPlaces("39", coords, NEARBY_RADIUS_METERS);
+  const { data: touristSpots } = useTourPlaces("12", coords, NEARBY_RADIUS_METERS);
 
   useEffect(() => {
     (async () => {
@@ -112,8 +112,23 @@ export default function HomeScreen() {
     router.push({ pathname: "/explore", params: { category } });
   };
 
-  const goToPlace = (category: Category, placeId: string) => {
-    router.push({ pathname: "/explore", params: { category, placeId } });
+  const goToPlace = (place: {
+    category: Category;
+    id: string;
+    name: string;
+    latitude: number;
+    longitude: number;
+  }) => {
+    router.push({
+      pathname: "/explore",
+      params: {
+        category: place.category,
+        placeId: place.id,
+        name: place.name,
+        latitude: String(place.latitude),
+        longitude: String(place.longitude),
+      },
+    });
   };
 
   return (
@@ -146,7 +161,7 @@ export default function HomeScreen() {
           <Pressable
             key={`${place.category}-${place.id}`}
             style={styles.nearbyCard}
-            onPress={() => goToPlace(place.category, place.id)}
+            onPress={() => goToPlace(place)}
           >
             <Text style={styles.nearbyCategory}>
               {CATEGORY_LABEL[place.category]}
